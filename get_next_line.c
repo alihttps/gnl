@@ -20,33 +20,42 @@
 # define BUFFER_SIZE 10
 #endif
 
-char	*ft_strjoin(char *left_str, char *buff)
+char *ft_strjoin(char *left_str, char *buff)
 {
-	size_t	i;
-	size_t	j;
-	char	*str;
+    size_t i, j;
+    char *str;
 
-	if (!left_str)
-	{
-		left_str = (char *)malloc(1 * sizeof(char));
-		left_str[0] = '\0';
-	}
-	if (!left_str || !buff)
-		return (NULL);
-	str = malloc(sizeof(char) * ((strlen(left_str) + strlen(buff)) + 1));
-	if (str == NULL)
-		return (NULL);
-	i = -1;
-	j = 0;
-	if (left_str)
-		while (left_str[++i] != '\0')
-			str[i] = left_str[i];
-	while (buff[j] != '\0')
-		str[i++] = buff[j++];
-	str[strlen(left_str) + strlen(buff)] = '\0';
-	free(left_str);
-	return (str);
+    if (!left_str)
+    {
+        left_str = (char *)malloc(1);
+        left_str[0] = '\0';
+    }
+
+    if (!left_str || !buff)
+        return NULL;
+
+    str = malloc(strlen(left_str) + strlen(buff) + 1);
+
+    if (str == NULL)
+    {
+        free(left_str); // Free left_str on memory allocation failure
+        return NULL;
+    }
+
+    i = -1;
+    j = 0;
+
+    while (left_str[++i] != '\0')
+        str[i] = left_str[i];
+
+    while (buff[j] != '\0')
+        str[i++] = buff[j++];
+
+    str[strlen(left_str) + strlen(buff)] = '\0';
+    free(left_str); // Free left_str after copying to str
+    return str;
 }
+
 
 char* process_left(char* result)
 {
@@ -99,44 +108,44 @@ char* process_right(char* result)
 
 char* get_next_line(int fd)
 {
-  char *buffer;
-  char* line;
-  static char* result = NULL;
-  int bytes_read;
+    char *buffer;
+    char* line;
+    static char* result = NULL;
+    int bytes_read;
 
-  if (fd < 0 || BUFFER_SIZE <= 0)
-    return (NULL);
+    if (fd < 0 || BUFFER_SIZE <= 0)
+        return (NULL);
 
-  buffer = malloc(sizeof(char) * (BUFFER_SIZE + 1));
-  if (!buffer)
-    return NULL;
+    buffer = malloc(sizeof(char) * (BUFFER_SIZE + 1));
+    if (!buffer)
+        return NULL;
 
-  bytes_read = 1;
-  while (bytes_read != 0 && (!result || !strchr(result, '\n')))
-  {
-    bytes_read = read(fd, buffer, BUFFER_SIZE);
-    if (bytes_read == -1)
+    bytes_read = 1;
+    while (bytes_read != 0 && (!result || !strchr(result, '\n')))
     {
-      free(result);
-      free(buffer);
-      return (NULL);
+        bytes_read = read(fd, buffer, BUFFER_SIZE);
+        if (bytes_read == -1)
+        {
+            free(result);
+            free(buffer);
+            return (NULL);
+        }
+
+        buffer[bytes_read] = '\0';
+        result = ft_strjoin(result, buffer);
     }
 
-    buffer[bytes_read] = '\0';
-    result = ft_strjoin(result, buffer);
-  }
+    line = process_left(result);
+    if (!line)
+    {
+        free(buffer);
+        return (NULL);
+    }
 
-  line = process_left(result);
-  if (!line)
-  {
+    result = process_right(result);
     free(buffer);
-    return (NULL);
-  }
 
-  result = process_right(result);
-  free(buffer);
-
-  return line;
+    return line;
 }
 
 
@@ -147,6 +156,8 @@ int main(void)
     fd = open("text.txt", O_RDONLY);
     next_line = get_next_line(fd);
     printf ("%s", next_line);
+    
+    free(result);  // Free memory associated with the static variable
     close(fd);
     return 0;
 }
